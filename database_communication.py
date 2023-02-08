@@ -1,4 +1,5 @@
 import logging
+import tweeterAPI
 import os
 import psycopg
 from psycopg.errors import ProgrammingError
@@ -12,7 +13,27 @@ def exec_statement(conn, stmt):
         print(e)
         return
 
+def UploadFanToDB(fan,connection):
+    exec_statement(connection,"INSERT INTO Football_Fan VALUES ({});".format(fan.id))
 
+def UploadClubToDB(club,connection): 
+    exec_statement(connection,"INSERT INTO Football_Fan VALUES ({});".format(club.id))
+
+def UploadUserToDB(user, isClub,connection):
+	exec_statement(connection,"INSERT INTO Twitter_User VALUES ({},'{}','{}',{},{},{},{},{});"
+		.format(user.id,
+				user.username,
+				user.name,
+				user.public_metrics["followers_count"],
+				user.public_metrics["following_count"],
+				user.public_metrics["tweet_count"],
+				user.public_metrics["listed_count"],
+				user.verified))
+	if isClub:
+		UploadClubToDB(user,connection)
+	else:
+		UploadFanToDB(user,connection)
+	
 def main():
     # replace user and password in the conncection string
     connectionString = "postgresql://aly:pmhs0rlJl7xFY3BHilr42A@blank-raccoon-8825.7tt.cockroachlabs.cloud:26257/Football?sslmode=verify-full"
@@ -20,7 +41,20 @@ def main():
     # Connect to CockroachDB
     connection = psycopg.connect(connectionString, application_name="$ football-tables-creation")
     
-    statements = [
+    footballClubs = tweeterAPI.GetListMembers("88096365") 
+
+    for club in footballClubs:
+        UploadUserToDB(club,True,connection)
+
+    # Close communication with the database
+    connection.close()
+
+
+if __name__ == "__main__":
+    main()
+
+
+# DDL SQL I ran to create the database
     #    """CREATE TABLE Place (
 	#id varchar(25) PRIMARY KEY,
 	#full_name text,
@@ -57,14 +91,4 @@ def main():
 	# user_profile_clicks int,
 	# author_id varchar(15) REFERENCES Twitter_User ON DELETE CASCADE,
 	# location varchar(25) REFERENCES Place);"""
-    ]
-
-    for statement in statements:
-        exec_statement(connection, statement)
-
-    # Close communication with the database
-    connection.close()
-
-
-if __name__ == "__main__":
-    main()
+   	
