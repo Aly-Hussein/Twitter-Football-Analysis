@@ -11,17 +11,24 @@ client = tweepy.Client(consumer_key=consumer_key, consumer_secret=consumer_secre
                        bearer_token=bearer_token
                        )
 
-# Fetches a list of User Objects. 
-#The Users that are members of the list id "88096365"
-#That list has all the official accounts of the premier league football clubs
+#Fetches a list using the listId. 
+#Returns all the User members of that list 
+#The list with ID "88096365" has all the official accounts of the premier league football clubs
 def GetListMembers(listId):
     return client.get_list_members(id=listId,user_fields="verified,public_metrics")[0]
 
-# query = '#petday -is:retweet lang:en'
-# tweets = tweepy.Paginator(client.search_recent_tweets, query=query,
-#                           tweet_fields=['context_annotations', 'created_at'], max_results=100).flatten(limit=1000)
+#Fetches a tweet using the ID and returns its object
+def GetTweet(tweetId):
+    return client.get_tweet(id=tweetId,tweet_fields="created_at,public_metrics,author_id,geo",expansions="geo.place_id",place_fields="contained_within,country,country_code,full_name,geo,id,name,place_type")[0]
 
-# for tweet in tweets:
-#     print(tweet.text)
-#     if len(tweet.context_annotations) > 0:
-#         print(tweet.context_annotations)
+
+# print(tweet.id)
+# print(tweet.text)
+# print(tweet.created_at)
+# print(tweet.)
+# print(tweet.public_metrics["like_count"])
+# print(tweet.public_metrics["reply_count"])
+# print(tweet.public_metrics["retweet_count"])
+# print(tweet.author_id)
+# print(tweet.geo["place_id"])
+

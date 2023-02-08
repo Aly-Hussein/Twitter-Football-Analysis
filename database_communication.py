@@ -19,6 +19,18 @@ def UploadFanToDB(fan,connection):
 def UploadClubToDB(club,connection): 
     exec_statement(connection,"INSERT INTO Football_Fan VALUES ({});".format(club.id))
 
+def UploadTweetToDB(tweet,connection):
+	exec_statement(connection,"INSERT INTO Twitter_User VALUES ({},'{}',{},{},{},{},{},{},{});"
+		.format(tweet.id,
+				tweet.text,
+				tweet.created_at,
+				tweet.public_metrics["impression_count"],
+				tweet.public_metrics["like_count"],
+				tweet.public_metrics["reply_count"],
+				tweet.public_metrics["retweet_count"],
+				tweet.author_id.
+				tweet.geo["place_id"]))
+
 def UploadUserToDB(user, isClub,connection):
 	exec_statement(connection,"INSERT INTO Twitter_User VALUES ({},'{}','{}',{},{},{},{},{});"
 		.format(user.id,
