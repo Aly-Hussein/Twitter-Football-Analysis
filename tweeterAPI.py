@@ -21,6 +21,19 @@ def GetListMembers(listId):
 def GetTweet(tweetId):
     return client.get_tweet(id=tweetId,tweet_fields="created_at,public_metrics,author_id,geo",expansions="geo.place_id",place_fields="contained_within,country,country_code,full_name,geo,id,name,place_type")[0]
 
+#Fetches a place using the ID and returns its object
+def GetPlace(tweet):
+    geo = tweet.geo
+    if geo:
+        place = geo.place
+        if place:
+            place_info = {}
+            place_info['full_name'] = place.full_name
+            place_info['country'] = place.country
+            place_info['place_type'] = place.place_type
+            place_info['geo_id'] = geo.place_id
+            return place_info
+    return None
 
 # print(tweet.id)
 # print(tweet.text)
