@@ -45,6 +45,14 @@ def UploadUserToDB(user, isClub,connection):
 		UploadClubToDB(user,connection)
 	else:
 		UploadFanToDB(user,connection)
+
+	def UploadPlaceToDB(place,connection):
+	exec_statement(connection,"INSERT INTO Twitter_Place VALUES ({},'{}','{}','{}');"
+		.format(place.id,
+				place.name,
+				place.country,
+				place.type'))
+
 	
 def main():
     # replace user and password in the conncection string
