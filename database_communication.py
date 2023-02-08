@@ -66,6 +66,13 @@ def main():
     for club in footballClubs:
         UploadUserToDB(club,True,connection)
 
+	tweets = tweeterAPI.search_tweets(q="football", tweet_fields="created_at,public_metrics,author_id,geo", expansions="geo.place_id", place_fields="country,full_name,geo,id,place_type")
+
+	for tweet in tweets:
+    	place_info = GetLocation(tweet)
+    	if place_info:
+    	    UploadPlaceToDB(place_info, connection)
+
     # Close communication with the database
     connection.close()
 
