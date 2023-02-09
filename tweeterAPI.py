@@ -1,4 +1,6 @@
+import json
 import tweepy
+import requests
 
 consumer_key = 'cfrMAw09ZamTi6NKP7ezSTXaV'
 consumer_secret = '1ZwTmmpzoY6T4rGStowDPEbJ19DZE3rMQoyIQuwD9IGfGi0Oas'
@@ -17,31 +19,25 @@ client = tweepy.Client(consumer_key=consumer_key, consumer_secret=consumer_secre
 def GetListMembers(listId):
     return client.get_list_members(id=listId,user_fields="verified,public_metrics")[0]
 
-#Fetches a tweet using the ID and returns its object
-def GetTweet(tweetId):
-    return client.get_tweet(id=tweetId,tweet_fields="created_at,public_metrics,author_id,geo",expansions="geo.place_id",place_fields="contained_within,country,country_code,full_name,geo,id,name,place_type")[0]
+#Function for authentication, don't really understand what it means but its important
+def bearer_oauth(r):
+    r.headers["Authorization"] = f"Bearer {bearer_token}"
+    r.headers["User-Agent"] = "v2TweetLookupPython"
+    return r
 
-#Fetches a place using the ID and returns its object
-def GetPlace(tweet):
-    geo = tweet.geo
-    if geo:
-        place = geo.place
-        if place:
-            place_info = {}
-            place_info['full_name'] = place.full_name
-            place_info['country'] = place.country
-            place_info['place_type'] = place.place_type
-            place_info['geo_id'] = geo.place_id
-            return place_info
-    return None
+def GetTweetsUrl(ids):
+    return ("https://api.twitter.com/2/tweets?ids={}&expansions=geo.place_id,author_id"
+            "&place.fields=country,full_name,id,place_type&user.fields=verified,public_metrics"
+            "&tweet.fields=created_at,public_metrics,author_id,geo".format(ids))
 
-# print(tweet.id)
-# print(tweet.text)
-# print(tweet.created_at)
-# print(tweet.)
-# print(tweet.public_metrics["like_count"])
-# print(tweet.public_metrics["reply_count"])
-# print(tweet.public_metrics["retweet_count"])
-# print(tweet.author_id)
-# print(tweet.geo["place_id"])
+def GetTweetsResponse(ids):
+    return requests.request("GET", GetTweetsUrl(ids), auth=bearer_oauth)
 
+def GetTweetsDataList(response):
+    return response.json()["data"]
+
+def GetPlacesDataList(response):
+    return response.json()["includes"]["places"]
+
+def GetUsersDataList(response):
+    return response.json()["includes"]["users"]

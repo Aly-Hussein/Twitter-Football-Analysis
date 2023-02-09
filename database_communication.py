@@ -3,93 +3,101 @@ import tweeterAPI
 import os
 import psycopg
 from psycopg.errors import ProgrammingError
+from datetime import datetime
 
 def exec_statement(conn, stmt):
-    try:
-        with conn.cursor() as cur:
-            cur.execute(stmt)
-            conn.commit()
-    except Exception as e:
-        print(e)
-        return
+	try:
+		with conn.cursor() as cur:
+			cur.execute(stmt)
+			conn.commit()
+	except Exception as e:
+		print(e,'/n',stmt)
+		return
 
 def UploadFanToDB(fan,connection):
-    exec_statement(connection,"INSERT INTO Football_Fan VALUES ({});".format(fan.id))
+	exec_statement(connection,"INSERT INTO Football_Fan VALUES ({});".format(fan["id"]))
 
 def UploadClubToDB(club,connection): 
-    exec_statement(connection,"INSERT INTO Football_Fan VALUES ({});".format(club.id))
+	exec_statement(connection,"INSERT INTO Football_Club VALUES ({});".format(club["id"]))
 
 def UploadTweetToDB(tweet,connection):
-	exec_statement(connection,"INSERT INTO Twitter_User VALUES ({},'{}',{},{},{},{},{},{},{});"
-		.format(tweet.id,
-				tweet.text,
-				tweet.created_at,
-				tweet.public_metrics["impression_count"],
-				tweet.public_metrics["like_count"],
-				tweet.public_metrics["reply_count"],
-				tweet.public_metrics["retweet_count"],
-				tweet.author_id.
-				tweet.geo["place_id"]))
+	exec_statement(connection,"INSERT INTO Tweet VALUES ({},'{}','{}',{},{},{},{},'{}','{}');"
+		.format(tweet["id"],
+				tweet["text"],
+				#Parsing the dateTime string from python to a format that the DB can use
+				datetime.strptime(tweet["created_at"],"%Y-%m-%dT%H:%M:%S.%fZ").date(),
+				tweet["public_metrics"]["impression_count"],
+				tweet["public_metrics"]["like_count"],
+				tweet["public_metrics"]["reply_count"],
+				tweet["public_metrics"]["retweet_count"],
+				tweet["author_id"],
+				tweet["geo"]["place_id"]))
 
 def UploadUserToDB(user, isClub,connection):
 	exec_statement(connection,"INSERT INTO Twitter_User VALUES ({},'{}','{}',{},{},{},{},{});"
-		.format(user.id,
-				user.username,
-				user.name,
-				user.public_metrics["followers_count"],
-				user.public_metrics["following_count"],
-				user.public_metrics["tweet_count"],
-				user.public_metrics["listed_count"],
-				user.verified))
+		.format(user["id"],
+				user["username"],
+				user["name"],
+				user["public_metrics"]["followers_count"],
+				user["public_metrics"]["following_count"],
+				user["public_metrics"]["tweet_count"],
+				user["public_metrics"]["listed_count"],
+				user["verified"]))
 	if isClub:
 		UploadClubToDB(user,connection)
 	else:
 		UploadFanToDB(user,connection)
 
 def UploadPlaceToDB(place,connection):
-	exec_statement(connection,"INSERT INTO Twitter_Place VALUES ({},'{}','{}','{}');"
-		.format(place.id,
-				place.name,
-				place.country,
-				place.type'))
+	exec_statement(connection,"INSERT INTO Place VALUES ('{}','{}','{}','{}');"
+		.format(place["id"],
+				place["full_name"],
+				place["country"],
+				place["place_type"]))
 
 	
 def main():
-    # replace user and password in the conncection string
-    connectionString = "postgresql://aly:pmhs0rlJl7xFY3BHilr42A@blank-raccoon-8825.7tt.cockroachlabs.cloud:26257/Football?sslmode=verify-full"
+	# replace user and password in the conncection string
+	connectionString = "postgresql://aly:pmhs0rlJl7xFY3BHilr42A@blank-raccoon-8825.7tt.cockroachlabs.cloud:26257/Football?sslmode=verify-full"
 
-    # Connect to CockroachDB
-    connection = psycopg.connect(connectionString, application_name="$ football-tables-creation")
-    
-    footballClubs = tweeterAPI.GetListMembers("88096365") 
+	# Connect to CockroachDB
+	connection = psycopg.connect(connectionString, application_name="$ football-tables-creation")
 
-    for club in footballClubs:
-        UploadUserToDB(club,True,connection)
+	# Prevents Next sql statements from failing if one fails in the middle
+	connection._set_autocommit(True)
 
-	tweets = tweeterAPI.search_tweets(q="football", tweet_fields="created_at,public_metrics,author_id,geo", expansions="geo.place_id", place_fields="country,full_name,geo,id,place_type")
+	#testing with these 3 tweet Ids. 
+	# Ideally a search function would return 100 tweets Ids to pass and upload directly
+	response = tweeterAPI.GetTweetsResponse("1582907705815023616,1561368016960606208,1567602698551181312")
 
-	for tweet in tweets:
-    	place_info = GetLocation(tweet)
-    	if place_info:
-    	    UploadPlaceToDB(place_info, connection)
+	userList = tweeterAPI.GetUsersDataList(response)
+	for user in userList:
+		UploadUserToDB(user,False,connection)
 
-    # Close communication with the database
-    connection.close()
+	placeList = tweeterAPI.GetPlacesDataList(response)
+	for place in placeList:
+		UploadPlaceToDB(place,connection)
+
+	tweetList = tweeterAPI.GetTweetsDataList(response)
+	for tweet in tweetList:
+		UploadTweetToDB(tweet,connection)
+
+	# Close communication with the database
+	connection.close()
 
 
 if __name__ == "__main__":
-    main()
-
+	main()
 
 # DDL SQL I ran to create the database
-    #    """CREATE TABLE Place (
+	#    """CREATE TABLE Place (
 	#id varchar(25) PRIMARY KEY,
 	#full_name text,
 	#country varchar(60),
 	#place_type varchar(60))"""
-    
-    # """CREATE TABLE Twitter_User (
-	# id varchar(15) PRIMARY KEY,
+	
+	# """CREATE TABLE Twitter_User (
+	# id varchar(25) PRIMARY KEY,
 	# username varchar(15),
 	# name varchar(50),
 	# followers_count int,
@@ -98,15 +106,15 @@ if __name__ == "__main__":
 	# listed_count int,
 	# verified bool);""",
 
-    # """CREATE Table Football_Fan (
-	# id varchar(15) PRIMARY KEY,
+	# """CREATE Table Football_Fan (
+	# id varchar(25) PRIMARY KEY,
 	# FOREIGN KEY (id) REFERENCES Twitter_User);""",
 
-    # """CREATE Table Football_Club (
-	# id varchar(15) PRIMARY KEY,
+	# """CREATE Table Football_Club (
+	# id varchar(25) PRIMARY KEY,
 	# FOREIGN KEY (id) REFERENCES Twitter_User);""",
-    
-    # """CREATE TABLE Tweet (
+	
+	# """CREATE TABLE Tweet (
 	# id varchar(25) PRIMARY KEY,
 	# text text NOT NULL,
 	# created_at Date,
@@ -114,8 +122,6 @@ if __name__ == "__main__":
 	# like_count int,
 	# reply_count int,
 	# retweet_count int,
-	# url_link_clicks int,
-	# user_profile_clicks int,
-	# author_id varchar(15) REFERENCES Twitter_User ON DELETE CASCADE,
+	# author_id varchar(25) REFERENCES Twitter_User ON DELETE CASCADE,
 	# location varchar(25) REFERENCES Place);"""
-   	
+	   
