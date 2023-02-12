@@ -4,6 +4,7 @@ import os
 import psycopg
 from psycopg.errors import ProgrammingError
 from datetime import datetime
+import string
 
 def exec_statement(conn, stmt):
 	try:
@@ -23,7 +24,7 @@ def UploadClubToDB(club,connection):
 def UploadTweetToDB(tweet,connection):
 	exec_statement(connection,"INSERT INTO Tweet VALUES ({},'{}','{}',{},{},{},{},'{}','{}');"
 		.format(tweet["id"],
-				tweet["text"],
+				tweet["text"].replace("'","\""),
 				#Parsing the dateTime string from python to a format that the DB can use
 				datetime.strptime(tweet["created_at"],"%Y-%m-%dT%H:%M:%S.%fZ").date(),
 				tweet["public_metrics"]["impression_count"],
@@ -66,21 +67,40 @@ def main():
 	# Prevents Next sql statements from failing if one fails in the middle
 	connection._set_autocommit(True)
 
-	#testing with these 3 tweet Ids. 
-	# Ideally a search function would return 100 tweets Ids to pass and upload directly
-	response = tweeterAPI.GetTweetsResponse("1582907705815023616,1561368016960606208,1567602698551181312")
-
-	userList = tweeterAPI.GetUsersDataList(response)
-	for user in userList:
-		UploadUserToDB(user,False,connection)
-
-	placeList = tweeterAPI.GetPlacesDataList(response)
-	for place in placeList:
-		UploadPlaceToDB(place,connection)
+	response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams())
+	# response = tweeterAPI.connect_to_endpoint(tweeterAPI.GetTweetsUrl("1624639389933481985"))
 
 	tweetList = tweeterAPI.GetTweetsDataList(response)
+
 	for tweet in tweetList:
-		UploadTweetToDB(tweet,connection)
+		if "geo" in tweet:
+			userPlace = tweeterAPI.GetUserPlaceTupleFromTweet(tweet)
+			UploadUserToDB(userPlace[0],False,connection)
+			UploadPlaceToDB(userPlace[1],connection)
+			UploadTweetToDB(tweet,connection)
+
+	while(tweeterAPI.GetNextQueryToken(response)):
+		response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams(tweeterAPI.GetNextQueryToken(response)))
+
+		tweetList = tweeterAPI.GetTweetsDataList(response)
+
+		for tweet in tweetList:
+			if "geo" in tweet:
+				userPlace = tweeterAPI.GetUserPlaceTupleFromTweet(tweet)
+				UploadUserToDB(userPlace[0],False,connection)
+				UploadPlaceToDB(userPlace[1],connection)
+				UploadTweetToDB(tweet,connection)
+
+
+	# for user in userList:
+	# 	UploadUserToDB(user,False,connection)
+
+	# for place in placeList:
+	# 	UploadPlaceToDB(place,connection)
+
+	# tweetList = tweeterAPI.GetTweetsDataList(response)
+	# for tweet in tweetList:
+	# 	UploadTweetToDB(tweet,connection)
 
 	# Close communication with the database
 	connection.close()
