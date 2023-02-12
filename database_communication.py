@@ -5,6 +5,13 @@ import psycopg
 from psycopg.errors import ProgrammingError
 from datetime import datetime
 import string
+import time
+import argparse
+
+# Parse the command-line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--nextToken', help='next token to be searched')
+args = parser.parse_known_args()
 
 def exec_statement(conn, stmt):
 	try:
@@ -67,8 +74,11 @@ def main():
 	# Prevents Next sql statements from failing if one fails in the middle
 	connection._set_autocommit(True)
 
-	response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams())
-	# response = tweeterAPI.connect_to_endpoint(tweeterAPI.GetTweetsUrl("1624639389933481985"))
+	if("nextToken" in args):
+		response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams(args.nextToken))
+	else:
+		response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams())
+
 
 	tweetList = tweeterAPI.GetTweetsDataList(response)
 
@@ -80,16 +90,19 @@ def main():
 			UploadTweetToDB(tweet,connection)
 
 	while(tweeterAPI.GetNextQueryToken(response)):
-		response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams(tweeterAPI.GetNextQueryToken(response)))
+		print(tweeterAPI.GetNextQueryToken(response))
+		try:
+			response = tweeterAPI.connect_to_endpoint(tweeterAPI.search_url,tweeterAPI.GetQueryParams(tweeterAPI.GetNextQueryToken(response)))
+			tweetList = tweeterAPI.GetTweetsDataList(response)
 
-		tweetList = tweeterAPI.GetTweetsDataList(response)
-
-		for tweet in tweetList:
-			if "geo" in tweet:
-				userPlace = tweeterAPI.GetUserPlaceTupleFromTweet(tweet)
-				UploadUserToDB(userPlace[0],False,connection)
-				UploadPlaceToDB(userPlace[1],connection)
-				UploadTweetToDB(tweet,connection)
+			for tweet in tweetList:
+				if "geo" in tweet:
+					userPlace = tweeterAPI.GetUserPlaceTupleFromTweet(tweet)
+					UploadUserToDB(userPlace[0],False,connection)
+					UploadPlaceToDB(userPlace[1],connection)
+					UploadTweetToDB(tweet,connection)
+		except Exception as e:
+			time.sleep(15 * 60)
 
 
 	# for user in userList:
