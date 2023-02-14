@@ -122,39 +122,4 @@ def main():
 if __name__ == "__main__":
 	main()
 
-# DDL SQL I ran to create the database
-	#    """CREATE TABLE Place (
-	#id varchar(25) PRIMARY KEY,
-	#full_name text,
-	#country varchar(60),
-	#place_type varchar(60))"""
-	
-	# """CREATE TABLE Twitter_User (
-	# id varchar(25) PRIMARY KEY,
-	# username varchar(15),
-	# name varchar(50),
-	# followers_count int,
-	# following_count int,
-	# tweet_count int,
-	# listed_count int,
-	# verified bool);""",
-
-	# """CREATE Table Football_Fan (
-	# id varchar(25) PRIMARY KEY,
-	# FOREIGN KEY (id) REFERENCES Twitter_User);""",
-
-	# """CREATE Table Football_Club (
-	# id varchar(25) PRIMARY KEY,
-	# FOREIGN KEY (id) REFERENCES Twitter_User);""",
-	
-	# """CREATE TABLE Tweet (
-	# id varchar(25) PRIMARY KEY,
-	# text text NOT NULL,
-	# created_at Date,
-	# impression_count int,
-	# like_count int,
-	# reply_count int,
-	# retweet_count int,
-	# author_id varchar(25) REFERENCES Twitter_User ON DELETE CASCADE,
-	# location varchar(25) REFERENCES Place);"""
 	   
